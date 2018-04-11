@@ -1,0 +1,47 @@
+#%RAML 1.0
+title: POC2
+version: '1.1'
+mediaType: application/json
+protocols:
+  - HTTP
+baseUri: ''
+'/login/{env}':
+  post:
+    responses:
+      '200':
+        body:
+          application/json:
+            type: object
+            properties:
+              userName:
+                required: true
+                example: nishchal6
+                description: Property description
+                type: string
+      '401': {}
+    body:
+      application/json:
+        type: object
+        properties:
+          emailId:
+            required: true
+            pattern: '^[a-zA-Z0-9]+@[a-zA-Z0-9]+[.][a-z]+$'
+            example: nishc2hal@capgemin.com
+            description: Property description
+            type: string
+          userName:
+            required: true
+            example: nishchal6
+            description: Property description
+            type: string
+          password:
+            required: true
+            example: Example
+            description: Property description
+            default: p@$$word
+            type: string
+  uriParameters:
+    env:
+      example: Example
+      description: Specify environment
+      type: string

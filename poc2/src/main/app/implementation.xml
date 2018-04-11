@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd"><spring:beans>
+	<spring:bean class="com.cg.poc2.Credentials" name="credentialsObj"></spring:bean>
+	</spring:beans>
+    <flow name="transformToPOJOFlow">
+        <set-variable variableName="env" value="#[message.inboundProperties.'http.uri.params'.env]" doc:name="setEnvironmentVariable"/>
+
+        <dw:transform-message doc:name="JSON to Java" metadata:id="8acf57b0-2900-4ac5-87cb-3b786abf1a8d">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	emailId: payload.emailId,
+	password: payload.password,
+	userName: payload.userName
+} as :object {
+	class : "com.cg.poc2.Credentials"
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="checkCredentialsFlow" doc:name="checkCredentialsFlow"/>
+
+    </flow>
+    <flow name="checkCredentialsFlow">
+        <choice doc:name="environmentChoice">
+            <when expression="#[flowVars.env == &quot;dev&quot;]">
+                <invoke name="isDevValid" object-ref="credentialsObj" method="isDevValid" methodArguments="#[payload.emailId],#[payload.userName],#[payload.password]" doc:name="isDevValidInvoke" metadata:id="47407290-239e-4074-97e7-3d4b136c4bfd"/>
+            </when>
+            <when expression="#[flowVars.env == &quot;prod&quot;]">
+                <invoke name="isProdValid" object-ref="credentialsObj" method="isProdValid" methodArguments="#[payload.emailId],#[payload.userName],#[payload.password]" doc:name="isProdValidInvoke"/>
+            </when>
+            <when expression="#[flowVars.env == &quot;test&quot;]">
+                <invoke name="isTestValid" object-ref="credentialsObj" method="isTestValid" methodArguments="#[payload.emailId],#[payload.userName],#[payload.password]" doc:name="isTestValidInvoke"/>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+                <set-payload value="{ &quot;message&quot;: &quot;Invalid Environment Variable (Use : 'dev', 'prod', 'test')&quot; }" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+
+        <set-payload value="#[payload]" doc:name="Set Payload"/>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
